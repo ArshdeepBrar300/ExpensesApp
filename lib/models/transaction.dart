@@ -4,5 +4,9 @@ class transaction {
   final String id;
   final double amount;
 
-  transaction({this.title, this.amount, this.day, this.id});
+  transaction(
+      {required this.title,
+      required this.amount,
+      required this.day,
+      required this.id});
 }

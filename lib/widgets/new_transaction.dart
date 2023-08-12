@@ -1,101 +1,119 @@
+import 'dart:io';
+
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-class NewTransaction extends StatefulWidget {
-  final Function addtransaction;
+import '../widgets/adaptive_flat_button.dart';
 
-  NewTransaction(this.addtransaction);
+class NewTransaction extends StatefulWidget {
+  final Function addTx;
+
+  NewTransaction(this.addTx);
 
   @override
-  State<NewTransaction> createState() => _NewTransactionState();
+  _NewTransactionState createState() => _NewTransactionState();
 }
 
 class _NewTransactionState extends State<NewTransaction> {
   final _titleController = TextEditingController();
-  DateTime _currentdate;
   final _amountController = TextEditingController();
+  late DateTime _selectedDate = DateTime(2000);
 
-  void _submitdata() {
-    String _enteredTitle = _titleController.text;
-    double _enteredAmount = double.parse(_amountController.text);
-    if (_enteredTitle.isEmpty || _enteredAmount <= 0 || _currentdate == null)
+  void _submitData() {
+    if (_amountController.text.isEmpty) {
       return;
-    widget.addtransaction(_enteredTitle, _enteredAmount, _currentdate);
+    }
+    final enteredTitle = _titleController.text;
+    final enteredAmount = double.parse(_amountController.text);
+
+    if (enteredTitle.isEmpty || enteredAmount <= 0 || _selectedDate == null) {
+      return;
+    }
+
+    widget.addTx(
+      enteredTitle,
+      enteredAmount,
+      _selectedDate,
+    );
 
     Navigator.of(context).pop();
   }
 
-  void _showcalender() {
+  void _presentDatePicker() {
+    print("****");
     showDatePicker(
-            context: context,
-            initialDate: DateTime.now(),
-            firstDate: DateTime(2023),
-            lastDate: DateTime.now())
-        .then((selectedDate) {
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2019),
+      lastDate: DateTime.now(),
+    ).then((pickedDate) {
+      if (pickedDate == null) {
+        return;
+      }
       setState(() {
-        _currentdate = selectedDate;
+        _selectedDate = pickedDate;
       });
     });
+    print('...');
   }
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 5,
-      child: SingleChildScrollView(
+    return SingleChildScrollView(
+      child: Card(
+        elevation: 5,
         child: Container(
-            margin: EdgeInsets.fromLTRB(
-                10, 10, 10, MediaQuery.of(context).viewInsets.bottom + 15),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                TextField(
-                  decoration: InputDecoration(labelText: 'Title'),
-                  controller: _titleController,
-                  onSubmitted: (_) {
-                    _submitdata();
-                  },
-                ),
-                TextField(
-                  decoration: InputDecoration(labelText: 'Amount'),
-                  controller: _amountController,
-                  keyboardType: TextInputType.number,
-                  onSubmitted: (_) {
-                    _submitdata();
-                  },
-                ),
-                Container(
-                  height: 70,
-                  child: Row(
-                    children: [
-                      Flexible(
-                        fit: FlexFit.tight,
-                        child: Text(_currentdate == null
-                            ? "No date chosen"
-                            : 'Picked Date: ${DateFormat.yMd().format(_currentdate)}'),
+          padding: EdgeInsets.only(
+            top: 10,
+            left: 10,
+            right: 10,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 10,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: <Widget>[
+              TextField(
+                decoration: InputDecoration(labelText: 'Title'),
+                controller: _titleController,
+                onSubmitted: (_) => _submitData(),
+                // onChanged: (val) {
+                //   titleInput = val;
+                // },
+              ),
+              TextField(
+                decoration: InputDecoration(labelText: 'Amount'),
+                controller: _amountController,
+                keyboardType: TextInputType.number,
+                onSubmitted: (_) => _submitData(),
+                // onChanged: (val) => amountInput = val,
+              ),
+              Container(
+                height: 70,
+                child: Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: Text(
+                        _selectedDate == null
+                            ? 'No Date Chosen!'
+                            : 'Picked Date: ${DateFormat.yMd().format(_selectedDate)}',
                       ),
-                      TextButton(
-                        onPressed: _showcalender,
-                        child: Text(
-                          "Choose a date",
-                          style: TextStyle(
-                              backgroundColor: Colors.white,
-                              color: Theme.of(context).primaryColor),
-                          // TextStyle(
-                          //     color: Theme.of(context).primaryColorDark,
-                          //     fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                    AdaptiveFlatButton('Choose Date', _presentDatePicker)
+                  ],
                 ),
-                ElevatedButton(
-                  onPressed: _submitdata,
-                  child: Text('Add Item',
-                      style: Theme.of(context).textTheme.button),
-                ),
-              ],
-            )),
+              ),
+              ElevatedButton(
+                child: Text('Add Transaction'),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).primaryColor,
+                    textStyle: TextStyle(
+                        color: Theme.of(context).textTheme.button!.color)),
+                onPressed: _submitData,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

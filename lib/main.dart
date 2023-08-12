@@ -1,10 +1,19 @@
-import 'package:expenses_app/widgets/new_transaction.dart';
+import 'dart:io';
+
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import './widgets/new_transaction.dart';
 import './widgets/transaction_list.dart';
-import './models/transaction.dart';
 import './widgets/chart.dart';
+import './models/transaction.dart';
 
 void main() {
+  // SystemChrome.setPreferredOrientations([
+  //   DeviceOrientation.portraitUp,
+  //   DeviceOrientation.portraitUp,
+  // ]);
   runApp(MyApp());
 }
 
@@ -12,137 +21,173 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Expenses App',
-      home: MyHomePage(),
+      title: 'Personal Expenses',
       theme: ThemeData(
-          primarySwatch: Colors.purple,
-          accentColor: Colors.amber,
-          fontFamily: "OpenSans",
-          textTheme: ThemeData.light().textTheme.copyWith(
-              headline6: TextStyle(fontFamily: "Quicksand", fontSize: 20),
-              button: TextStyle(
+        primarySwatch: Colors.purple,
+        hintColor: Colors.amber,
+        // errorColor: Colors.red,
+        fontFamily: 'Quicksand',
+        textTheme: ThemeData.light().textTheme.copyWith(
+              subtitle1: TextStyle(
                 fontFamily: 'OpenSans',
-                color: Colors.white,
-              )),
-          appBarTheme: AppBarTheme(
-            textTheme: ThemeData.light().textTheme.copyWith(
-                  headline6: TextStyle(fontFamily: "OpenSans", fontSize: 20),
-                ),
-          )),
-      debugShowCheckedModeBanner: false,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+              button: TextStyle(color: Colors.white),
+            ),
+      ),
+      home: MyHomePage(),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
+  // String titleInput;
+  // String amountInput;
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  _MyHomePageState createState() => _MyHomePageState();
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final List<transaction> transactions = [];
+  final List<transaction> _userTransactions = [
+    transaction(
+      id: 't1',
+      title: 'New Shoes',
+      amount: 69.99,
+      day: DateTime.now(),
+    ),
+    transaction(
+      id: 't2',
+      title: 'Weekly Groceries',
+      amount: 16.53,
+      day: DateTime.now(),
+    ),
+  ];
   bool _showChart = false;
 
-  List<transaction> get recentTransations {
-    return transactions.where((element) {
-      return element.day.isAfter(DateTime.now().subtract(Duration(days: 7)));
+  List<transaction> get _recentTransactions {
+    return _userTransactions.where((tx) {
+      return tx.day.isAfter(
+        DateTime.now().subtract(
+          Duration(days: 7),
+        ),
+      );
     }).toList();
+  }
+
+  void _addNewTransaction(
+      String txTitle, double txAmount, DateTime chosenDate) {
+    final newTx = transaction(
+      title: txTitle,
+      amount: txAmount,
+      day: chosenDate,
+      id: DateTime.now().toString(),
+    );
+
+    setState(() {
+      _userTransactions.add(newTx);
+    });
+  }
+
+  void _startAddNewTransaction(BuildContext ctx) {
+    showModalBottomSheet(
+      context: ctx,
+      builder: (_) {
+        return GestureDetector(
+          onTap: () {},
+          child: NewTransaction(_addNewTransaction),
+          behavior: HitTestBehavior.opaque,
+        );
+      },
+    );
   }
 
   void _deleteTransaction(String id) {
     setState(() {
-      transactions.removeWhere((tx) => tx.id == id);
+      _userTransactions.removeWhere((tx) => tx.id == id);
     });
-  }
-
-  void addNewTransaction(String txtitle, double txamount, DateTime currdate) {
-    final newtx = transaction(
-        title: txtitle,
-        amount: txamount,
-        day: currdate,
-        id: DateTime.now().toString());
-    setState(() {
-      transactions.add(newtx);
-    });
-  }
-
-  void startnewtransaction(BuildContext ctx) {
-    showModalBottomSheet(
-        context: ctx,
-        builder: (_) {
-          return GestureDetector(
-            onTap: () {},
-            child: NewTransaction(addNewTransaction),
-          );
-        });
   }
 
   @override
   Widget build(BuildContext context) {
-    final isLandsacape =
-        MediaQuery.of(context).orientation == Orientation.landscape;
-
-    final appbar = AppBar(title: Text('Expenses App'), actions: [
-      IconButton(
-          onPressed: () {
-            startnewtransaction(context);
-          },
-          icon: Icon(Icons.add))
-    ]);
-    final txList = Container(
-        height: (MediaQuery.of(context).size.height -
-                appbar.preferredSize.height -
-                MediaQuery.of(context).padding.top) *
-            0.7,
-        child: TransactionList(transactions, _deleteTransaction));
-
-    return Scaffold(
-      appBar: appbar,
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          if (isLandsacape)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text("Show Chart "),
-                Switch(
-                    value: _showChart,
-                    onChanged: (switchval) {
-                      setState(() {
-                        _showChart = switchval;
-                      });
-                    }),
-              ],
-            ),
-          if (!isLandsacape)
-            Container(
-                height: (MediaQuery.of(context).size.height -
-                        appbar.preferredSize.height -
-                        MediaQuery.of(context).padding.top) *
-                    0.3,
-                padding: EdgeInsets.all(10),
-                child: Chart(recentTransations)),
-          if (!isLandsacape) txList,
-          if (isLandsacape)
-            _showChart
-                ? Container(
-                    height: (MediaQuery.of(context).size.height -
-                            appbar.preferredSize.height -
-                            MediaQuery.of(context).padding.top) *
-                        0.7,
-                    padding: EdgeInsets.all(10),
-                    child: Chart(recentTransations))
-                : txList,
-        ],
+    final mediaQuery = MediaQuery.of(context);
+    final isLandscape = mediaQuery.orientation == Orientation.landscape;
+    final PreferredSizeWidget appBar = AppBar(
+      title: Text(
+        'Personal Expenses',
       ),
+      actions: <Widget>[
+        IconButton(
+          icon: Icon(Icons.add),
+          onPressed: () => _startAddNewTransaction(context),
+        ),
+      ],
+    );
+    final txListWidget = Container(
+      height: (mediaQuery.size.height -
+              appBar.preferredSize.height -
+              mediaQuery.padding.top) *
+          0.7,
+      child: TransactionList(_userTransactions, _deleteTransaction),
+    );
+    final pageBody = SafeArea(
+      child: SingleChildScrollView(
+        child: Column(
+          // mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            if (isLandscape)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Text(
+                    'Show Chart',
+                    style: Theme.of(context).textTheme.headline6,
+                  ),
+                  Switch.adaptive(
+                    activeColor: Theme.of(context).canvasColor,
+                    value: _showChart,
+                    onChanged: (val) {
+                      setState(() {
+                        _showChart = val;
+                      });
+                    },
+                  ),
+                ],
+              ),
+            if (!isLandscape)
+              Container(
+                height: (mediaQuery.size.height -
+                        appBar.preferredSize.height -
+                        mediaQuery.padding.top) *
+                    0.3,
+                child: Chart(_recentTransactions),
+              ),
+            if (!isLandscape) txListWidget,
+            if (isLandscape)
+              _showChart
+                  ? Container(
+                      height: (mediaQuery.size.height -
+                              appBar.preferredSize.height -
+                              mediaQuery.padding.top) *
+                          0.7,
+                      child: Chart(_recentTransactions),
+                    )
+                  : txListWidget
+          ],
+        ),
+      ),
+    );
+    return Scaffold(
+      appBar: appBar,
+      body: pageBody,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: FloatingActionButton(
-          child: IconButton(
-              onPressed: () {
-                startnewtransaction(context);
-              },
-              icon: Icon(Icons.add))),
+      floatingActionButton: Platform.isIOS
+          ? Container()
+          : FloatingActionButton(
+              child: Icon(Icons.add),
+              onPressed: () => _startAddNewTransaction(context),
+            ),
     );
   }
 }
